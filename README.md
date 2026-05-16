@@ -182,6 +182,7 @@ Gold Star Schema
     ↓
 Power BI Analytics
 ```
+---
 
 
 ## ▶️ How to Execute the Project
@@ -318,6 +319,7 @@ Synapse Silver & Gold Layer
 Power BI Dashboards
 ```
 ---
+
 
 ## 💡 Learning Outcomes
 
