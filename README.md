@@ -164,7 +164,7 @@ SUM(gold_fact_orders[freight_value])
 - CETAS
 - Star Schema Modeling
 
----
+
 
 ---
 
@@ -184,7 +184,7 @@ Gold Star Schema
     ↓
 Power BI Analytics
 
----
+
 
 ---
 
