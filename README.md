@@ -166,6 +166,8 @@ SUM(gold_fact_orders[freight_value])
 
 ---
 
+---
+
 ## 🔄 End-to-End Workflow
 
 CSV Dataset
@@ -181,9 +183,10 @@ Synapse Silver Transformations
 Gold Star Schema
     ↓
 Power BI Analytics
-```
+
 ---
 
+---
 
 ## ▶️ How to Execute the Project
 
