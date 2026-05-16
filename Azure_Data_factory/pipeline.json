@@ -1,0 +1,196 @@
+{
+    "name": "PL_Dynamic_Load",
+    "properties": {
+        "activities": [
+            {
+                "name": "Lookup_Metadata",
+                "type": "Lookup",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": {
+                        "referenceName": "DS_SQL_Metadata",
+                        "type": "DatasetReference"
+                    },
+                    "firstRowOnly": false
+                }
+            },
+            {
+                "name": "ForEach_Table",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Lookup_Metadata",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Lookup_Metadata').output.value",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Copy_Orders_To_Bronze",
+                            "type": "Copy",
+                            "dependsOn": [
+                                {
+                                    "activity": "Lookup_Watermark",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "AzureSqlSource",
+                                    "sqlReaderQuery": {
+                                        "value": "@concat(\n'SELECT * FROM orders WHERE order_purchase_timestamp > ''',\nactivity('Lookup_Watermark').output.firstRow.last_load_date,\n''''\n)",
+                                        "type": "Expression"
+                                    },
+                                    "queryTimeout": "02:00:00",
+                                    "partitionOption": "None"
+                                },
+                                "sink": {
+                                    "type": "ParquetSink",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSWriteSettings"
+                                    },
+                                    "formatSettings": {
+                                        "type": "ParquetWriteSettings"
+                                    }
+                                },
+                                "enableStaging": false,
+                                "translator": {
+                                    "type": "TabularTranslator",
+                                    "typeConversion": true,
+                                    "typeConversionSettings": {
+                                        "allowDataTruncation": true,
+                                        "treatBooleanAsNumber": false
+                                    }
+                                }
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "Source_SQL_Dynamic",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "table": {
+                                            "value": "@item().table_name",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "Sink_ADLS_Dynamic",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "folder": {
+                                            "value": "@item().sink_folder",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Lookup_Watermark",
+                            "type": "Lookup",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "AzureSqlSource",
+                                    "sqlReaderQuery": {
+                                        "value": "SELECT last_load_date\nFROM adf_watermark\nWHERE table_name='orders'",
+                                        "type": "Expression"
+                                    },
+                                    "queryTimeout": "02:00:00",
+                                    "partitionOption": "None"
+                                },
+                                "dataset": {
+                                    "referenceName": "Source_SQL_Dynamic",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "table": {
+                                            "value": "@item().table_name",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "name": "Update_Watermark",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Copy_Orders_To_Bronze",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "usp_update_watermark"
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "LS_AzureSQL",
+                                "type": "LinkedServiceReference"
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "parameters": {
+            "table_name": {
+                "type": "string"
+            },
+            "sink_folder": {
+                "type": "string"
+            }
+        },
+        "annotations": []
+    }
+}

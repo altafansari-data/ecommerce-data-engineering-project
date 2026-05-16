@@ -1,0 +1,16 @@
+{
+    "name": "DS_SQL_Metadata",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "LS_AzureSQL",
+            "type": "LinkedServiceReference"
+        },
+        "annotations": [],
+        "type": "AzureSqlTable",
+        "schema": [],
+        "typeProperties": {
+            "schema": "dbo",
+            "table": "adf_metadata"
+        }
+    }
+}
